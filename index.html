@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f4f1ea" />
+  <title>かんたん記録帳</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="app-header">
+      <p class="eyebrow">DATE RECORD</p>
+      <h1>かんたん記録帳</h1>
+      <p class="description">
+        記録はこのブラウザ内だけに保存されます。
+      </p>
+    </header>
+
+    <section class="panel input-panel" aria-labelledby="input-title">
+      <h2 id="input-title">新しい記録</h2>
+
+      <label for="record-date">日付</label>
+      <input id="record-date" type="date" />
+
+      <label for="record-text">内容</label>
+      <textarea
+        id="record-text"
+        rows="6"
+        placeholder="今日の出来事やメモを入力"
+      ></textarea>
+
+      <button id="save-button" class="primary-button" type="button">
+        保存する
+      </button>
+
+      <p id="status-message" class="status-message" aria-live="polite"></p>
+    </section>
+
+    <section class="panel export-panel" aria-labelledby="export-title">
+      <div>
+        <h2 id="export-title">バックアップ</h2>
+        <p>記録をTXTまたはCSVで保存できます。</p>
+      </div>
+
+      <div class="export-buttons">
+        <button id="export-txt" class="secondary-button" type="button">
+          TXT保存
+        </button>
+        <button id="export-csv" class="secondary-button" type="button">
+          CSV保存
+        </button>
+      </div>
+    </section>
+
+    <section class="records-section" aria-labelledby="records-title">
+      <div class="records-heading">
+        <h2 id="records-title">記録一覧</h2>
+        <span id="record-count">0件</span>
+      </div>
+
+      <div id="records-list" class="records-list"></div>
+
+      <p id="empty-message" class="empty-message">
+        まだ記録がありません。
+      </p>
+    </section>
+  </main>
+
+  <template id="record-template">
+    <article class="record-card">
+      <div class="record-top">
+        <time class="record-date"></time>
+        <button class="delete-button" type="button">削除</button>
+      </div>
+      <p class="record-text"></p>
+    </article>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>

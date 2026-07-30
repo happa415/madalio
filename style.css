@@ -1,0 +1,283 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI",
+    "Yu Gothic", sans-serif;
+  color: #2f332f;
+  background: #f4f1ea;
+  font-synthesis: none;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.85), transparent 34rem),
+    #f4f1ea;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+.app {
+  width: min(100% - 28px, 720px);
+  margin: 0 auto;
+  padding: 38px 0 64px;
+}
+
+.app-header {
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #6d776e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 10px;
+  font-size: clamp(2rem, 8vw, 3.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+h2 {
+  margin-bottom: 18px;
+  font-size: 1.05rem;
+}
+
+.description {
+  margin-bottom: 0;
+  color: #687069;
+  line-height: 1.7;
+}
+
+.panel {
+  margin-bottom: 18px;
+  padding: 22px;
+  border: 1px solid rgba(65, 75, 67, 0.1);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 12px 40px rgba(61, 68, 62, 0.07);
+  backdrop-filter: blur(12px);
+}
+
+.input-panel {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid #cfd5cf;
+  border-radius: 14px;
+  background: #fff;
+  color: #2f332f;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+input {
+  min-height: 48px;
+  padding: 0 14px;
+}
+
+textarea {
+  min-height: 140px;
+  padding: 14px;
+  resize: vertical;
+  line-height: 1.65;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #6f8174;
+  box-shadow: 0 0 0 4px rgba(111, 129, 116, 0.13);
+}
+
+.primary-button,
+.secondary-button,
+.delete-button {
+  border: 0;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.primary-button {
+  min-height: 50px;
+  margin-top: 8px;
+  background: #44594a;
+  color: #fff;
+  font-weight: 700;
+}
+
+.primary-button:active {
+  transform: translateY(1px);
+}
+
+.status-message {
+  min-height: 1.4em;
+  margin: 0;
+  color: #667067;
+  font-size: 0.88rem;
+}
+
+.status-message.error {
+  color: #a0443a;
+}
+
+.export-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.export-panel h2 {
+  margin-bottom: 6px;
+}
+
+.export-panel p {
+  margin-bottom: 0;
+  color: #747c75;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.secondary-button {
+  min-height: 44px;
+  padding: 0 16px;
+  background: #e7ebe7;
+  color: #354138;
+  font-weight: 700;
+}
+
+.records-section {
+  padding-top: 12px;
+}
+
+.records-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.records-heading h2 {
+  margin-bottom: 0;
+}
+
+#record-count {
+  color: #747c75;
+  font-size: 0.9rem;
+}
+
+.records-list {
+  display: grid;
+  gap: 12px;
+}
+
+.record-card {
+  padding: 18px;
+  border: 1px solid rgba(65, 75, 67, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 8px 28px rgba(61, 68, 62, 0.055);
+}
+
+.record-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.record-date {
+  color: #667068;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.record-text {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+
+.delete-button {
+  min-height: 38px;
+  padding: 0 13px;
+  background: #f3e9e6;
+  color: #96483f;
+  font-weight: 700;
+}
+
+.empty-message {
+  padding: 28px 18px;
+  border: 1px dashed #cbd1cb;
+  border-radius: 18px;
+  color: #7b827c;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .app {
+    width: min(100% - 20px, 720px);
+    padding-top: 24px;
+  }
+
+  .panel {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .export-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .export-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .secondary-button {
+    width: 100%;
+  }
+}
