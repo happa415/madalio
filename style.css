@@ -139,7 +139,9 @@ textarea:focus {
   font-weight: 700;
 }
 
-.primary-button:active {
+.primary-button:active,
+.secondary-button:active,
+.delete-button:active {
   transform: translateY(1px);
 }
 
@@ -154,28 +156,37 @@ textarea:focus {
   color: #a0443a;
 }
 
-.export-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.export-panel h2 {
+.backup-panel h2 {
   margin-bottom: 6px;
 }
 
-.export-panel p {
-  margin-bottom: 0;
+.backup-panel > div:first-child p {
+  margin-bottom: 18px;
   color: #747c75;
   font-size: 0.9rem;
   line-height: 1.55;
 }
 
-.export-buttons {
+.backup-groups {
+  display: grid;
+  gap: 14px;
+}
+
+.button-group {
+  display: grid;
+  gap: 8px;
+}
+
+.group-label {
+  color: #667068;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.button-row {
   display: flex;
   gap: 10px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .secondary-button {
@@ -184,6 +195,16 @@ textarea:focus {
   background: #e7ebe7;
   color: #354138;
   font-weight: 700;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 .records-section {
@@ -267,14 +288,13 @@ textarea:focus {
     border-radius: 18px;
   }
 
-  .export-panel {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .export-buttons {
+  .button-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
+  }
+
+  .button-row .secondary-button:only-child {
+    grid-column: 1 / -1;
   }
 
   .secondary-button {

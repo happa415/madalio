@@ -5,6 +5,8 @@ const textInput = document.querySelector("#record-text");
 const saveButton = document.querySelector("#save-button");
 const exportTxtButton = document.querySelector("#export-txt");
 const exportCsvButton = document.querySelector("#export-csv");
+const importButton = document.querySelector("#import-button");
+const importFileInput = document.querySelector("#import-file");
 const recordsList = document.querySelector("#records-list");
 const recordTemplate = document.querySelector("#record-template");
 const emptyMessage = document.querySelector("#empty-message");
@@ -19,6 +21,8 @@ renderRecords();
 saveButton.addEventListener("click", saveRecord);
 exportTxtButton.addEventListener("click", exportAsTxt);
 exportCsvButton.addEventListener("click", exportAsCsv);
+importButton.addEventListener("click", () => importFileInput.click());
+importFileInput.addEventListener("change", importRecords);
 
 function setToday() {
   const today = new Date();
@@ -60,16 +64,7 @@ function saveRecord() {
     return;
   }
 
-  const record = {
-    id: crypto.randomUUID
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    date,
-    text,
-    createdAt: new Date().toISOString(),
-  };
-
-  records.unshift(record);
+  records.unshift(createRecord(date, text));
   saveRecords();
   renderRecords();
 
@@ -78,44 +73,47 @@ function saveRecord() {
   showStatus("保存しました。");
 }
 
+function createRecord(date, text) {
+  return {
+    id: crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    date,
+    text,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 function renderRecords() {
   recordsList.innerHTML = "";
 
-  records
-    .slice()
-    .sort((a, b) => {
-      if (a.date !== b.date) {
-        return b.date.localeCompare(a.date);
-      }
-      return b.createdAt.localeCompare(a.createdAt);
-    })
-    .forEach((record) => {
-      const fragment = recordTemplate.content.cloneNode(true);
-      const card = fragment.querySelector(".record-card");
-      const dateElement = fragment.querySelector(".record-date");
-      const textElement = fragment.querySelector(".record-text");
-      const deleteButton = fragment.querySelector(".delete-button");
+  getSortedRecords().forEach((record) => {
+    const fragment = recordTemplate.content.cloneNode(true);
+    const card = fragment.querySelector(".record-card");
+    const dateElement = fragment.querySelector(".record-date");
+    const textElement = fragment.querySelector(".record-text");
+    const deleteButton = fragment.querySelector(".delete-button");
 
-      dateElement.textContent = formatDate(record.date);
-      dateElement.dateTime = record.date;
-      textElement.textContent = record.text;
+    dateElement.textContent = formatDate(record.date);
+    dateElement.dateTime = record.date;
+    textElement.textContent = record.text;
 
-      deleteButton.addEventListener("click", () => {
-        const confirmed = window.confirm(
-          `${formatDate(record.date)} の記録を削除しますか？`
-        );
+    deleteButton.addEventListener("click", () => {
+      const confirmed = window.confirm(
+        `${formatDate(record.date)} の記録を削除しますか？`
+      );
 
-        if (!confirmed) return;
+      if (!confirmed) return;
 
-        records = records.filter((item) => item.id !== record.id);
-        saveRecords();
-        renderRecords();
-        showStatus("削除しました。");
-      });
-
-      card.dataset.recordId = record.id;
-      recordsList.appendChild(fragment);
+      records = records.filter((item) => item.id !== record.id);
+      saveRecords();
+      renderRecords();
+      showStatus("削除しました。");
     });
+
+    card.dataset.recordId = record.id;
+    recordsList.appendChild(fragment);
+  });
 
   emptyMessage.hidden = records.length > 0;
   recordCount.textContent = `${records.length}件`;
@@ -134,7 +132,7 @@ function showStatus(message, isError = false) {
   showStatus.timer = window.setTimeout(() => {
     statusMessage.textContent = "";
     statusMessage.classList.remove("error");
-  }, 3000);
+  }, 4000);
 }
 
 function exportAsTxt() {
@@ -171,7 +169,6 @@ function exportAsCsv() {
     .map((row) => row.map(escapeCsvValue).join(","))
     .join("\r\n");
 
-  // ExcelやNumbersで日本語が文字化けしにくいようBOMを付けます。
   downloadFile(
     `記録帳_${getFileDate()}.csv`,
     `\uFEFF${csv}`,
@@ -179,6 +176,168 @@ function exportAsCsv() {
   );
 
   showStatus("CSVファイルを作成しました。");
+}
+
+async function importRecords(event) {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+
+  if (!file) return;
+
+  try {
+    const content = await file.text();
+    const extension = file.name.split(".").pop()?.toLowerCase();
+
+    let imported;
+
+    if (extension === "csv") {
+      imported = parseCsvRecords(content);
+    } else if (extension === "txt") {
+      imported = parseTxtRecords(content);
+    } else {
+      throw new Error("TXTまたはCSVファイルを選んでください。");
+    }
+
+    if (!imported.length) {
+      throw new Error("読み込める記録が見つかりませんでした。");
+    }
+
+    const existingKeys = new Set(
+      records.map((record) => makeDuplicateKey(record.date, record.text))
+    );
+
+    const newRecords = imported
+      .filter((record) => {
+        const key = makeDuplicateKey(record.date, record.text);
+
+        if (existingKeys.has(key)) return false;
+
+        existingKeys.add(key);
+        return true;
+      })
+      .map((record) => createRecord(record.date, record.text));
+
+    if (!newRecords.length) {
+      showStatus("すべて登録済みの記録でした。");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `${newRecords.length}件の記録を追加します。\n現在の記録は消えません。`
+    );
+
+    if (!confirmed) return;
+
+    records = [...newRecords, ...records];
+    saveRecords();
+    renderRecords();
+
+    const skipped = imported.length - newRecords.length;
+    const skippedText = skipped ? `（重複${skipped}件を除外）` : "";
+    showStatus(`${newRecords.length}件を読み込みました。${skippedText}`);
+  } catch (error) {
+    console.error(error);
+    showStatus(error.message || "読み込みに失敗しました。", true);
+  }
+}
+
+function parseTxtRecords(content) {
+  const normalized = content
+    .replace(/^\uFEFF/, "")
+    .replace(/\r\n?/g, "\n")
+    .trim();
+
+  if (!normalized) return [];
+
+  const blocks = normalized.split(/\n{2,}-{10,}\n{2,}/);
+
+  return blocks
+    .map((block) => {
+      const lines = block.trim().split("\n");
+      const date = lines.shift()?.trim();
+      const text = lines.join("\n").trim();
+
+      return { date, text };
+    })
+    .filter(isValidImportedRecord);
+}
+
+function parseCsvRecords(content) {
+  const rows = parseCsv(content.replace(/^\uFEFF/, ""));
+
+  if (!rows.length) return [];
+
+  const firstRow = rows[0].map((cell) => cell.trim());
+  const hasHeader =
+    firstRow[0] === "日付" ||
+    firstRow[0].toLowerCase() === "date";
+
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+
+  return dataRows
+    .map((row) => ({
+      date: (row[0] || "").trim(),
+      text: (row[1] || "").trim(),
+    }))
+    .filter(isValidImportedRecord);
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let value = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        value += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      row.push(value);
+      value = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") {
+        index += 1;
+      }
+
+      row.push(value);
+
+      if (row.some((cell) => cell.length > 0)) {
+        rows.push(row);
+      }
+
+      row = [];
+      value = "";
+    } else {
+      value += char;
+    }
+  }
+
+  row.push(value);
+
+  if (row.some((cell) => cell.length > 0)) {
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function isValidImportedRecord(record) {
+  return (
+    /^\d{4}-\d{2}-\d{2}$/.test(record.date || "") &&
+    Boolean(record.text?.trim())
+  );
+}
+
+function makeDuplicateKey(date, text) {
+  return `${date}\u0000${text.trim()}`;
 }
 
 function getSortedRecords() {
@@ -196,7 +355,10 @@ function escapeCsvValue(value) {
 }
 
 function getFileDate() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 function downloadFile(fileName, content, mimeType) {

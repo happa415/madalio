@@ -12,9 +12,7 @@
     <header class="app-header">
       <p class="eyebrow">DATE RECORD</p>
       <h1>かんたん記録帳</h1>
-      <p class="description">
-        記録はこのブラウザ内だけに保存されます。
-      </p>
+      <p class="description">記録はこのブラウザ内だけに保存されます。</p>
     </header>
 
     <section class="panel input-panel" aria-labelledby="input-title">
@@ -37,19 +35,39 @@
       <p id="status-message" class="status-message" aria-live="polite"></p>
     </section>
 
-    <section class="panel export-panel" aria-labelledby="export-title">
+    <section class="panel backup-panel" aria-labelledby="backup-title">
       <div>
-        <h2 id="export-title">バックアップ</h2>
-        <p>記録をTXTまたはCSVで保存できます。</p>
+        <h2 id="backup-title">バックアップ</h2>
+        <p>TXT・CSVへの保存と、保存済みファイルの読み込みができます。</p>
       </div>
 
-      <div class="export-buttons">
-        <button id="export-txt" class="secondary-button" type="button">
-          TXT保存
-        </button>
-        <button id="export-csv" class="secondary-button" type="button">
-          CSV保存
-        </button>
+      <div class="backup-groups">
+        <div class="button-group">
+          <span class="group-label">書き出し</span>
+          <div class="button-row">
+            <button id="export-txt" class="secondary-button" type="button">
+              TXT保存
+            </button>
+            <button id="export-csv" class="secondary-button" type="button">
+              CSV保存
+            </button>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <span class="group-label">読み込み</span>
+          <div class="button-row">
+            <button id="import-button" class="secondary-button" type="button">
+              TXT・CSVを選ぶ
+            </button>
+            <input
+              id="import-file"
+              class="visually-hidden"
+              type="file"
+              accept=".txt,.csv,text/plain,text/csv"
+            />
+          </div>
+        </div>
       </div>
     </section>
 
@@ -60,10 +78,7 @@
       </div>
 
       <div id="records-list" class="records-list"></div>
-
-      <p id="empty-message" class="empty-message">
-        まだ記録がありません。
-      </p>
+      <p id="empty-message" class="empty-message">まだ記録がありません。</p>
     </section>
   </main>
 
