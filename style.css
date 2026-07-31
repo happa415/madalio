@@ -322,3 +322,14 @@ textarea:focus {
   color: #354138;
   font-weight: 700;
 }
+
+
+.app-version {
+  display: inline-block;
+  margin-left: 0.35em;
+  color: #7b827c;
+  font-size: 0.28em;
+  font-weight: 600;
+  letter-spacing: 0;
+  vertical-align: middle;
+}
