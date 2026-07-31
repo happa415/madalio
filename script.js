@@ -3,6 +3,7 @@ const STORAGE_KEY = "simple-date-records-v1";
 const dateInput = document.querySelector("#record-date");
 const textInput = document.querySelector("#record-text");
 const saveButton = document.querySelector("#save-button");
+const cancelEditButton = document.querySelector("#cancel-edit-button");
 const exportTxtButton = document.querySelector("#export-txt");
 const exportCsvButton = document.querySelector("#export-csv");
 const importButton = document.querySelector("#import-button");
@@ -14,11 +15,13 @@ const recordCount = document.querySelector("#record-count");
 const statusMessage = document.querySelector("#status-message");
 
 let records = loadRecords();
+let editingRecordId = null;
 
 setToday();
 renderRecords();
 
 saveButton.addEventListener("click", saveRecord);
+cancelEditButton.addEventListener("click", cancelEdit);
 exportTxtButton.addEventListener("click", exportAsTxt);
 exportCsvButton.addEventListener("click", exportAsCsv);
 importButton.addEventListener("click", () => importFileInput.click());
@@ -64,6 +67,22 @@ function saveRecord() {
     return;
   }
 
+  if (editingRecordId) {
+    const record = records.find((item) => item.id === editingRecordId);
+    if (!record) {
+      cancelEdit();
+      showStatus("編集する記録が見つかりませんでした。", true);
+      return;
+    }
+    record.date = date;
+    record.text = text;
+    saveRecords();
+    renderRecords();
+    finishEdit();
+    showStatus("更新しました。");
+    return;
+  }
+
   records.unshift(createRecord(date, text));
   saveRecords();
   renderRecords();
@@ -92,11 +111,14 @@ function renderRecords() {
     const card = fragment.querySelector(".record-card");
     const dateElement = fragment.querySelector(".record-date");
     const textElement = fragment.querySelector(".record-text");
+    const editButton = fragment.querySelector(".edit-button");
     const deleteButton = fragment.querySelector(".delete-button");
 
     dateElement.textContent = formatDate(record.date);
     dateElement.dateTime = record.date;
     textElement.textContent = record.text;
+
+    editButton.addEventListener("click", () => startEdit(record.id));
 
     deleteButton.addEventListener("click", () => {
       const confirmed = window.confirm(
@@ -106,6 +128,7 @@ function renderRecords() {
       if (!confirmed) return;
 
       records = records.filter((item) => item.id !== record.id);
+      if (editingRecordId === record.id) finishEdit();
       saveRecords();
       renderRecords();
       showStatus("削除しました。");
@@ -117,6 +140,33 @@ function renderRecords() {
 
   emptyMessage.hidden = records.length > 0;
   recordCount.textContent = `${records.length}件`;
+}
+
+function startEdit(recordId) {
+  const record = records.find((item) => item.id === recordId);
+  if (!record) return;
+
+  editingRecordId = recordId;
+  dateInput.value = record.date;
+  textInput.value = record.text;
+  saveButton.textContent = "更新する";
+  cancelEditButton.hidden = false;
+  document.querySelector(".input-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  textInput.focus();
+  showStatus("編集中です。");
+}
+
+function cancelEdit() {
+  finishEdit();
+  showStatus("編集をキャンセルしました。");
+}
+
+function finishEdit() {
+  editingRecordId = null;
+  textInput.value = "";
+  setToday();
+  saveButton.textContent = "保存する";
+  cancelEditButton.hidden = true;
 }
 
 function formatDate(dateString) {

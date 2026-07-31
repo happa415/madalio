@@ -125,6 +125,7 @@ textarea:focus {
 
 .primary-button,
 .secondary-button,
+.edit-button,
 .delete-button {
   border: 0;
   border-radius: 14px;
@@ -141,6 +142,7 @@ textarea:focus {
 
 .primary-button:active,
 .secondary-button:active,
+.edit-button:active,
 .delete-button:active {
   transform: translateY(1px);
 }
@@ -300,4 +302,23 @@ textarea:focus {
   .secondary-button {
     width: 100%;
   }
+}
+
+
+.edit-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.record-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-button {
+  min-height: 38px;
+  padding: 0 13px;
+  background: #e7ebe7;
+  color: #354138;
+  font-weight: 700;
 }

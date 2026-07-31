@@ -28,9 +28,10 @@
         placeholder="今日の出来事やメモを入力"
       ></textarea>
 
-      <button id="save-button" class="primary-button" type="button">
-        保存する
-      </button>
+      <div class="edit-actions">
+        <button id="save-button" class="primary-button" type="button">保存する</button>
+        <button id="cancel-edit-button" class="secondary-button" type="button" hidden>編集をキャンセル</button>
+      </div>
 
       <p id="status-message" class="status-message" aria-live="polite"></p>
     </section>
@@ -86,7 +87,10 @@
     <article class="record-card">
       <div class="record-top">
         <time class="record-date"></time>
-        <button class="delete-button" type="button">削除</button>
+        <div class="record-actions">
+          <button class="edit-button" type="button">編集</button>
+          <button class="delete-button" type="button">削除</button>
+        </div>
       </div>
       <p class="record-text"></p>
     </article>
