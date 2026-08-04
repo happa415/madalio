@@ -11,7 +11,7 @@
   <main class="app">
     <header class="app-header">
       <p class="eyebrow">DATE RECORD</p>
-      <h1>Madalio <span class="app-version">v1.2.1</span></h1>
+      <h1>Madalio <span class="app-version">v1.3.0</span></h1>
       <p class="description">記録はこのブラウザ内だけに保存されます。</p>
     </header>
 
@@ -72,6 +72,28 @@
       </div>
     </section>
 
+
+    <section class="panel search-panel" aria-labelledby="search-title">
+      <div class="search-heading">
+        <div>
+          <h2 id="search-title">記録を検索</h2>
+          <p>日付または内容から絞り込めます。</p>
+        </div>
+        <button id="clear-search-button" class="text-button" type="button" hidden>
+          クリア
+        </button>
+      </div>
+
+      <label class="visually-hidden" for="search-input">記録を検索</label>
+      <input
+        id="search-input"
+        type="search"
+        inputmode="search"
+        autocomplete="off"
+        placeholder="キーワードを入力"
+      />
+    </section>
+
     <section class="records-section" aria-labelledby="records-title">
       <div class="records-heading">
         <h2 id="records-title">記録一覧</h2>
@@ -80,6 +102,9 @@
 
       <div id="records-list" class="records-list"></div>
       <p id="empty-message" class="empty-message">まだ記録がありません。</p>
+      <p id="no-results-message" class="empty-message" hidden>
+        一致する記録がありません。
+      </p>
     </section>
   </main>
 

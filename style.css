@@ -333,3 +333,46 @@ textarea:focus {
   letter-spacing: 0;
   vertical-align: middle;
 }
+
+
+.search-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.search-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.search-heading h2 {
+  margin-bottom: 6px;
+}
+
+.search-heading p {
+  margin-bottom: 0;
+  color: #747c75;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+#search-input {
+  padding-right: 42px;
+}
+
+.text-button {
+  min-height: 36px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: #59685d;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.text-button:active {
+  transform: translateY(1px);
+}

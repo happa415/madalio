@@ -13,6 +13,9 @@ const recordTemplate = document.querySelector("#record-template");
 const emptyMessage = document.querySelector("#empty-message");
 const recordCount = document.querySelector("#record-count");
 const statusMessage = document.querySelector("#status-message");
+const searchInput = document.querySelector("#search-input");
+const clearSearchButton = document.querySelector("#clear-search-button");
+const noResultsMessage = document.querySelector("#no-results-message");
 
 let records = loadRecords();
 let editingRecordId = null;
@@ -26,6 +29,8 @@ exportTxtButton.addEventListener("click", exportAsTxt);
 exportCsvButton.addEventListener("click", exportAsCsv);
 importButton.addEventListener("click", () => importFileInput.click());
 importFileInput.addEventListener("change", importRecords);
+searchInput.addEventListener("input", renderRecords);
+clearSearchButton.addEventListener("click", clearSearch);
 
 function setToday() {
   const today = new Date();
@@ -106,7 +111,18 @@ function createRecord(date, text) {
 function renderRecords() {
   recordsList.innerHTML = "";
 
-  getSortedRecords().forEach((record) => {
+  const query = normalizeSearchText(searchInput?.value || "");
+  const filteredRecords = getSortedRecords().filter((record) => {
+    if (!query) return true;
+
+    const searchableText = normalizeSearchText(
+      `${record.date} ${formatDate(record.date)} ${record.text}`
+    );
+
+    return searchableText.includes(query);
+  });
+
+  filteredRecords.forEach((record) => {
     const fragment = recordTemplate.content.cloneNode(true);
     const card = fragment.querySelector(".record-card");
     const dateElement = fragment.querySelector(".record-date");
@@ -138,8 +154,27 @@ function renderRecords() {
     recordsList.appendChild(fragment);
   });
 
+  const hasQuery = Boolean(query);
   emptyMessage.hidden = records.length > 0;
-  recordCount.textContent = `${records.length}件`;
+  noResultsMessage.hidden = !hasQuery || filteredRecords.length > 0;
+  clearSearchButton.hidden = !hasQuery;
+
+  recordCount.textContent = hasQuery
+    ? `${filteredRecords.length} / ${records.length}件`
+    : `${records.length}件`;
+}
+
+function normalizeSearchText(value) {
+  return String(value)
+    .normalize("NFKC")
+    .toLocaleLowerCase("ja-JP")
+    .trim();
+}
+
+function clearSearch() {
+  searchInput.value = "";
+  renderRecords();
+  searchInput.focus();
 }
 
 function startEdit(recordId) {
