@@ -76,6 +76,7 @@ function saveRecord() {
     }
     record.date = date;
     record.text = text;
+    record.updatedAt = new Date().toISOString();
     saveRecords();
     renderRecords();
     finishEdit();
@@ -94,12 +95,11 @@ function saveRecord() {
 
 function createRecord(date, text) {
   return {
-    id: crypto.randomUUID
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     date,
     text,
     createdAt: new Date().toISOString(),
+    updatedAt: null,
   };
 }
 
@@ -114,9 +114,16 @@ function renderRecords() {
     const editButton = fragment.querySelector(".edit-button");
     const deleteButton = fragment.querySelector(".delete-button");
 
-    dateElement.textContent = formatDate(record.date);
-    dateElement.dateTime = record.date;
-    textElement.textContent = record.text;
+    dateElement.innerHTML = `
+      ${formatDate(record.date)}<br>
+      <small>
+        作成: ${formatDateTime(record.createdAt)}<br>
+        編集: ${formatDateTime(record.updatedAt)}
+      </small>
+`;
+
+dateElement.dateTime = record.date;
+textElement.textContent = record.text;
 
     editButton.addEventListener("click", () => startEdit(record.id));
 
@@ -172,6 +179,19 @@ function finishEdit() {
 function formatDate(dateString) {
   const [year, month, day] = dateString.split("-");
   return `${year}年${Number(month)}月${Number(day)}日`;
+}
+
+function formatDateTime(dateString) {
+  if (!dateString) return "―";
+
+  return new Date(dateString).toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 function showStatus(message, isError = false) {
