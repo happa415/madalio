@@ -4,7 +4,6 @@ const dateInput = document.querySelector("#record-date");
 const textInput = document.querySelector("#record-text");
 const saveButton = document.querySelector("#save-button");
 const cancelEditButton = document.querySelector("#cancel-edit-button");
-const exportTxtButton = document.querySelector("#export-txt");
 const exportCsvButton = document.querySelector("#export-csv");
 const importButton = document.querySelector("#import-button");
 const importFileInput = document.querySelector("#import-file");
@@ -22,7 +21,6 @@ renderRecords();
 
 saveButton.addEventListener("click", saveRecord);
 cancelEditButton.addEventListener("click", cancelEdit);
-exportTxtButton.addEventListener("click", exportAsTxt);
 exportCsvButton.addEventListener("click", exportAsCsv);
 importButton.addEventListener("click", () => importFileInput.click());
 importFileInput.addEventListener("change", importRecords);
@@ -228,25 +226,6 @@ function showStatus(message, isError = false, duration = 4000) {
   }, duration);
 }
 
-function exportAsTxt() {
-  if (!records.length) {
-    showStatus("書き出す記録がありません。", true);
-    return;
-  }
-
-  const content = getSortedRecords()
-    .map((record) => `${record.date}\n${record.text}`)
-    .join("\n\n--------------------\n\n");
-
-  downloadFile(
-    `記録帳_${getFileDate()}.txt`,
-    content,
-    "text/plain;charset=utf-8"
-  );
-
-  showStatus("TXTファイルを作成しました。");
-}
-
 function exportAsCsv() {
   if (!records.length) {
     showStatus("書き出す記録がありません。", true);
@@ -281,15 +260,11 @@ async function importRecords(event) {
     const content = await file.text();
     const extension = file.name.split(".").pop()?.toLowerCase();
 
-    let imported;
-
-    if (extension === "csv") {
-      imported = parseCsvRecords(content);
-    } else if (extension === "txt") {
-      imported = parseTxtRecords(content);
-    } else {
-      throw new Error("TXTまたはCSVファイルを選んでください。");
+    if (extension !== "csv") {
+      throw new Error("CSVファイルを選んでください。");
     }
+
+    const imported = parseCsvRecords(content);
 
     if (!imported.length) {
       throw new Error("読み込める記録が見つかりませんでした。");
@@ -332,27 +307,6 @@ async function importRecords(event) {
     console.error(error);
     showStatus(error.message || "読み込みに失敗しました。", true);
   }
-}
-
-function parseTxtRecords(content) {
-  const normalized = content
-    .replace(/^\uFEFF/, "")
-    .replace(/\r\n?/g, "\n")
-    .trim();
-
-  if (!normalized) return [];
-
-  const blocks = normalized.split(/\n{2,}-{10,}\n{2,}/);
-
-  return blocks
-    .map((block) => {
-      const lines = block.trim().split("\n");
-      const date = lines.shift()?.trim();
-      const text = lines.join("\n").trim();
-
-      return { date, text };
-    })
-    .filter(isValidImportedRecord);
 }
 
 function parseCsvRecords(content) {
