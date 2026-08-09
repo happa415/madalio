@@ -126,7 +126,7 @@ function renderRecords() {
 dateElement.dateTime = record.date;
 textElement.textContent = record.text;
 
-    copyButton.addEventListener("click", () => copyRecordText(record));
+    copyButton.addEventListener("click", () => copyRecordText(record, copyButton));
 
     editButton.addEventListener("click", () => startEdit(record.id));
 
@@ -179,10 +179,19 @@ function finishEdit() {
   cancelEditButton.hidden = true;
 }
 
-function copyRecordText(record) {
+function copyRecordText(record, button) {
   const textToCopy = record.text;
+  const originalText = button.textContent;
   
   navigator.clipboard.writeText(textToCopy).then(() => {
+    button.textContent = "コピーしました";
+    button.disabled = true;
+    
+    setTimeout(() => {
+      button.textContent = originalText;
+      button.disabled = false;
+    }, 800);
+    
     showStatus("コピーしました。", false, 800);
   }).catch((error) => {
     console.error("コピーに失敗しました。", error);
