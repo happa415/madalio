@@ -122,6 +122,17 @@ input[type="date"] {
   height: 40px;
   -webkit-appearance: none;
   appearance: none;
+  line-height: 40px;
+  text-align: center;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0;
+  text-align: center;
 }
 
 textarea {
