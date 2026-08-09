@@ -83,6 +83,7 @@ h2 {
 
 .input-panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -110,6 +111,15 @@ textarea {
 input {
   min-height: 48px;
   padding: 0 14px;
+}
+
+input[type="date"] {
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 textarea {
