@@ -182,7 +182,7 @@ function copyRecordText(record, button) {
   const originalText = button.textContent;
   
   navigator.clipboard.writeText(textToCopy).then(() => {
-    button.textContent = "コピーしました";
+    button.textContent = "完了";
     button.disabled = true;
     
     setTimeout(() => {
