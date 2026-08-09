@@ -11,7 +11,7 @@
   <main class="app">
     <header class="app-header">
       <p class="eyebrow">DATE RECORD</p>
-      <h1>Madalio <span class="app-version">v1.40</span></h1>
+      <h1>Madalio <span class="app-version">v1.4.1</span></h1>
       <p class="description">記録はこのブラウザ内だけに保存されます。</p>
     </header>
 
@@ -39,33 +39,22 @@
     <section class="panel backup-panel" aria-labelledby="backup-title">
       <div>
         <h2 id="backup-title">バックアップ</h2>
-        <p>CSVへの保存と、保存済みファイルの読み込みができます。</p>
+        <p>CSVファイルでデータの保存・復元ができます。</p>
       </div>
 
-      <div class="backup-groups">
-        <div class="button-group">
-          <span class="group-label">書き出し</span>
-          <div class="button-row">
-            <button id="export-csv" class="secondary-button" type="button">
-              CSV保存
-            </button>
-          </div>
-        </div>
-
-        <div class="button-group">
-          <span class="group-label">読み込み</span>
-          <div class="button-row">
-            <button id="import-button" class="secondary-button" type="button">
-              CSVを選ぶ
-            </button>
-            <input
-              id="import-file"
-              class="visually-hidden"
-              type="file"
-              accept=".csv,text/csv"
-            />
-          </div>
-        </div>
+      <div class="button-row backup-actions">
+        <button id="import-button" class="secondary-button" type="button">
+          開く
+        </button>
+        <button id="export-csv" class="secondary-button" type="button">
+          保存
+        </button>
+        <input
+          id="import-file"
+          class="visually-hidden"
+          type="file"
+          accept=".csv,text/csv"
+        />
       </div>
     </section>
 

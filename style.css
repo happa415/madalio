@@ -171,26 +171,19 @@ textarea:focus {
   line-height: 1.55;
 }
 
-.backup-groups {
-  display: grid;
-  gap: 14px;
-}
-
-.button-group {
-  display: grid;
-  gap: 8px;
-}
-
-.group-label {
-  color: #667068;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
 .button-row {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.backup-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.backup-actions .secondary-button {
+  width: 100%;
 }
 
 .secondary-button {
