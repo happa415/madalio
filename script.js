@@ -1,6 +1,5 @@
 const STORAGE_KEY = "simple-date-records-v1";
 
-const dateInput = document.querySelector("#record-date");
 const textInput = document.querySelector("#record-text");
 const saveButton = document.querySelector("#save-button");
 const cancelEditButton = document.querySelector("#cancel-edit-button");
@@ -16,7 +15,6 @@ const statusMessage = document.querySelector("#status-message");
 let records = loadRecords();
 let editingRecordId = null;
 
-setToday();
 renderRecords();
 
 saveButton.addEventListener("click", saveRecord);
@@ -25,15 +23,13 @@ exportCsvButton.addEventListener("click", exportAsCsv);
 importButton.addEventListener("click", () => importFileInput.click());
 importFileInput.addEventListener("change", importRecords);
 
-function setToday() {
+function getToday() {
   const today = new Date();
-  const localDate = new Date(
+  return new Date(
     today.getTime() - today.getTimezoneOffset() * 60 * 1000
   )
     .toISOString()
     .slice(0, 10);
-
-  dateInput.value = localDate;
 }
 
 function loadRecords() {
@@ -51,13 +47,7 @@ function saveRecords() {
 }
 
 function saveRecord() {
-  const date = dateInput.value;
   const text = textInput.value.trim();
-
-  if (!date) {
-    showStatus("日付を選んでください。", true);
-    return;
-  }
 
   if (!text) {
     showStatus("内容を入力してください。", true);
@@ -72,7 +62,6 @@ function saveRecord() {
       showStatus("編集する記録が見つかりませんでした。", true);
       return;
     }
-    record.date = date;
     record.text = text;
     record.updatedAt = new Date().toISOString();
     saveRecords();
@@ -82,7 +71,7 @@ function saveRecord() {
     return;
   }
 
-  records.unshift(createRecord(date, text));
+  records.unshift(createRecord(getToday(), text));
   saveRecords();
   renderRecords();
 
@@ -155,7 +144,6 @@ function startEdit(recordId) {
   if (!record) return;
 
   editingRecordId = recordId;
-  dateInput.value = record.date;
   textInput.value = record.text;
   saveButton.textContent = "更新する";
   cancelEditButton.hidden = false;
@@ -172,7 +160,6 @@ function cancelEdit() {
 function finishEdit() {
   editingRecordId = null;
   textInput.value = "";
-  setToday();
   saveButton.textContent = "保存する";
   cancelEditButton.hidden = true;
 }
