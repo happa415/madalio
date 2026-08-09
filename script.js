@@ -242,7 +242,7 @@ function exportAsCsv() {
     .join("\r\n");
 
   downloadFile(
-    `記録帳_${getFileDate()}.csv`,
+    `madalio_${getFileDate()}.csv`,
     `\uFEFF${csv}`,
     "text/csv;charset=utf-8"
   );
