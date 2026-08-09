@@ -126,7 +126,8 @@ textarea:focus {
 .primary-button,
 .secondary-button,
 .edit-button,
-.delete-button {
+.delete-button,
+.copy-button {
   border: 0;
   border-radius: 14px;
   cursor: pointer;
@@ -143,7 +144,8 @@ textarea:focus {
 .primary-button:active,
 .secondary-button:active,
 .edit-button:active,
-.delete-button:active {
+.delete-button:active,
+.copy-button:active {
   transform: translateY(1px);
 }
 
@@ -316,6 +318,14 @@ textarea:focus {
 }
 
 .edit-button {
+  min-height: 38px;
+  padding: 0 13px;
+  background: #e7ebe7;
+  color: #354138;
+  font-weight: 700;
+}
+
+.copy-button {
   min-height: 38px;
   padding: 0 13px;
   background: #e7ebe7;

@@ -111,6 +111,7 @@ function renderRecords() {
     const card = fragment.querySelector(".record-card");
     const dateElement = fragment.querySelector(".record-date");
     const textElement = fragment.querySelector(".record-text");
+    const copyButton = fragment.querySelector(".copy-button");
     const editButton = fragment.querySelector(".edit-button");
     const deleteButton = fragment.querySelector(".delete-button");
 
@@ -124,6 +125,8 @@ function renderRecords() {
 
 dateElement.dateTime = record.date;
 textElement.textContent = record.text;
+
+    copyButton.addEventListener("click", () => copyRecordText(record));
 
     editButton.addEventListener("click", () => startEdit(record.id));
 
@@ -176,6 +179,17 @@ function finishEdit() {
   cancelEditButton.hidden = true;
 }
 
+function copyRecordText(record) {
+  const textToCopy = record.text;
+  
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    showStatus("コピーしました。", false, 800);
+  }).catch((error) => {
+    console.error("コピーに失敗しました。", error);
+    showStatus("コピーに失敗しました。", true);
+  });
+}
+
 function formatDate(dateString) {
   const [year, month, day] = dateString.split("-");
   return `${year}年${Number(month)}月${Number(day)}日`;
@@ -194,7 +208,7 @@ function formatDateTime(dateString) {
   });
 }
 
-function showStatus(message, isError = false) {
+function showStatus(message, isError = false, duration = 4000) {
   statusMessage.textContent = message;
   statusMessage.classList.toggle("error", isError);
 
@@ -202,7 +216,7 @@ function showStatus(message, isError = false) {
   showStatus.timer = window.setTimeout(() => {
     statusMessage.textContent = "";
     statusMessage.classList.remove("error");
-  }, 4000);
+  }, duration);
 }
 
 function exportAsTxt() {
