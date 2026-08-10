@@ -103,7 +103,6 @@ function renderRecords() {
     const deleteButton = fragment.querySelector(".delete-button");
 
     dateElement.innerHTML = `
-      ${formatDate(record.date)}<br>
       <small>
         作成: ${formatDateTime(record.createdAt)}<br>
         編集: ${formatDateTime(record.updatedAt)}
