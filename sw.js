@@ -1,5 +1,5 @@
 // HTMLの資産URL・script.jsのAPP_VERSIONと同時に更新する。
-const VERSION = "1.4.5.4";
+const VERSION = "1.4.5.5";
 const BASE_URL = new URL("./", self.location.href);
 const CACHE_PREFIX = `madalio-${BASE_URL.pathname}-assets-`;
 const CACHE_NAME = `${CACHE_PREFIX}${VERSION}`;

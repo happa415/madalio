@@ -1,4 +1,4 @@
-const APP_VERSION = "1.4.5.4";
+const APP_VERSION = "1.4.5.5";
 const STORAGE_KEY = "simple-date-records-v1";
 
 const textInput = document.querySelector("#record-text");
@@ -39,8 +39,16 @@ function loadRecords() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === null) return [];
     const loaded = JSON.parse(saved);
-    validateRecords(loaded);
-    return loaded;
+    // 旧形式の欠落だけをメモリ上で補完する。起動時には書き戻さない。
+    const normalized = Array.isArray(loaded) ? loaded.map((record) => {
+      if (record && typeof record === "object" && !Array.isArray(record) &&
+          !Object.prototype.hasOwnProperty.call(record, "updatedAt")) {
+        return { ...record, updatedAt: null };
+      }
+      return record;
+    }) : loaded;
+    validateRecords(normalized);
+    return normalized;
   } catch (error) {
     console.error("記録の読み込みに失敗しました。", error);
     storageLoadFailed = true;
