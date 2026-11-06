@@ -1,3 +1,4 @@
+const APP_VERSION = "1.4.5.4";
 const STORAGE_KEY = "simple-date-records-v1";
 
 const textInput = document.querySelector("#record-text");
@@ -408,3 +409,32 @@ function downloadFile(fileName, content, mimeType) {
 
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// メモの読み込み・保存とは独立して登録する。失敗しても通常利用を続ける。
+async function configureServiceWorker() {
+  if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+  const production = location.origin === "https://happa415.github.io" &&
+    location.pathname.startsWith("/madalio/");
+  const baseUrl = new URL("./", location.href);
+  try {
+    if (local && new URL(location.href).searchParams.get("pwa-test") !== "1") {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        const worker = registration.active || registration.waiting || registration.installing;
+        if (registration.scope === baseUrl.href && worker &&
+            worker.scriptURL === new URL("sw.js", baseUrl).href) {
+          await registration.unregister();
+        }
+      }
+      return;
+    }
+    if (!local && !production) return;
+    await navigator.serviceWorker.register("./sw.js", { scope: "./", updateViaCache: "none" });
+    // 登録成功はキャッシュ準備完了ではないため、準備完了表示は出さない。
+  } catch (error) {
+    console.warn("オフライン起動の準備に失敗しました。通常利用は続けられます。", error);
+  }
+}
+
+configureServiceWorker();

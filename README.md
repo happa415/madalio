@@ -1,4 +1,4 @@
-# Madalio v1.4.5.3
+# Madalio v1.4.5.4
 
 日付付きのメモをブラウザ内に保存できる、シンプルなWebアプリです。
 
@@ -89,6 +89,8 @@ python3 -m http.server 8000
 ├── index.html  # 画面構造
 ├── style.css   # レイアウトとデザイン
 ├── script.js   # 記録、保存、編集、入出力処理
+├── sw.js       # アプリ本体の事前キャッシュ
+├── manifest.webmanifest
 └── README.md
 ```
 
@@ -101,3 +103,37 @@ python3 -m http.server 8000
 - Clipboard API
 
 パッケージのインストールやビルドツールは不要です。
+
+## オフライン起動（PWA 第1段階）
+
+Service WorkerがHTML・CSS・JavaScript・ManifestをCache Storageへ版ごとに保存します。初回はオンラインでのアクセスと、必須ファイルすべてのキャッシュ・Worker有効化が必要です。登録だけでは準備完了ではありません。準備後はオフラインでも一覧・作成・編集・削除・コピー・JSON入出力を利用できます。JSONファイルは端末内に取得済みのものを使ってください。
+
+メモは従来どおりlocalStorage、アプリ本体はCache Storageに保存します。WorkerはlocalStorageやJSONバックアップを操作しません。キャッシュ削除とメモ削除は別です。ただし、ブラウザの「サイトデータをすべて削除」はメモも消す可能性があります。定期的にJSONでバックアップしてください。
+
+アイコンは未作成です。オフライン起動は検証できますが、インストール案内や見た目はブラウザにより異なり、インストール対応の完成確認は後の段階です。
+
+### 登録条件とLive Serverでのテスト
+
+- 本番は `https://happa415.github.io/madalio/` 内で登録します。
+- localhost・127.0.0.1・IPv6ループバックでは `?pwa-test=1` を付けた場合だけ登録します。例：`http://localhost:5500/?pwa-test=1`。
+- 通常のローカル開発では指定を外してください。残っている同ディレクトリのMadalio Workerを登録解除し、制御が残る間も通常開発のページと資産はネットワークから読みます。切り替え時は同じアプリのテスト用タブも閉じてください。
+- 開発ではホストとポートを固定してください。GitHub Pagesとは保存領域が異なります。LANのHTTPアドレスや `file://` ではPWA試験はできません。
+- Live Serverの自動リロードは、更新・未保存本文保持の試験中は停止してください。
+
+Chrome DevToolsのApplicationでService Workersの状態がactivatedになり、Cache Storageに必須5URL（トップ・index.html・版付きCSS・版付きJS・Manifest）がそろったことを確認します。もう一度PWAテストURLを開いて制御を受け、Offlineを有効にして通常再読み込みします。トップと `index.html?pwa-test=1` の両方、ブラウザを閉じた後の再起動、各メモ操作とJSON入出力を確認してください。本番ではテストクエリは不要です。
+
+### 更新とバージョン管理
+
+1. `index.html` のCSS・JS参照の `?v=` と表示バージョン、`script.js` の `APP_VERSION`、`sw.js` の `VERSION`、READMEの版を同じ新しい値へ更新します。HTML・CSS・JS・Manifest・Workerの変更時は毎回、未使用の版番号を使います。
+2. 必須ファイルを同じリリースとしてまとめて公開します。`sw.js` のファイル名は変えません。今回の作業では公開していません。
+3. 新版は別キャッシュへ全資産を保存した後に待機します。取得や版検証に失敗した場合は新版を破棄し、旧版を維持します。次のオンラインアクセスで再試行します。
+4. 全Madalioタブ・アプリ画面を閉じ、次回起動で新版を使います。単なる再読み込みだけでは新版へ切り替わらない場合があります。編集中の強制リロードはしません。
+5. 新版有効化時は、同ディレクトリのMadalio専用旧キャッシュだけを削除します。localStorageは維持します。
+
+### 開発用Workerとキャッシュの解除
+
+先に必要なメモをJSONで保存します。PWAテスト用タブを閉じ、テスト指定なしのURLを開きます。Chrome DevToolsのApplication → Service Workersで、その開発URLの `sw.js` をUnregisterします。Cache Storageでは `madalio-（パス）-assets-` で始まる該当アプリのキャッシュだけを削除します。全タブを閉じて開き直してください。Local Storageや「Clear site data」は削除しません。Firefoxも開発者ツールのApplication／Storageから登録と該当キャッシュを確認できます。
+
+### Safari・ホーム画面アプリへの移行
+
+Safari通常タブとホーム画面アプリは保存領域が異なる場合があり、メモの自動引き継ぎは前提にしません。元のSafariでJSONを書き出し、ホーム画面アプリをオンラインで初回起動してから、そのJSONを読み込みます。件数・内容を確認するまで元データとJSONを残してください。読み込みは現行のID・更新日時による追加更新方式です。削除の同期は行いません。iPhone・iPadの実機確認は後の段階です。
