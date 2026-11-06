@@ -238,27 +238,67 @@ async function importRecords(event) {
     const content = await file.text();
     const imported = parseJsonBackup(content);
     const confirmed = window.confirm(
-      "現在のメモをすべて置き換えます。よろしいですか？"
+      "現在のメモを残しながら、JSONのメモを追加・更新します。よろしいですか？"
     );
     if (!confirmed) return;
 
+    const merged = mergeBackupRecords(records, imported);
+    const message = `追加${merged.added}件・更新${merged.updated}件・変更なし${merged.unchanged}件`;
+    if (merged.added === 0 && merged.updated === 0) {
+      showStatus(message);
+      return;
+    }
+
     // 保存に成功するまで、現在のメモと編集中の内容には触れない。
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged.records));
     } catch (error) {
       console.error("バックアップの保存に失敗しました。", error);
       showStatus("保存に失敗しました。現在のメモは変更されていません。", true);
       return;
     }
 
-    records = imported;
+    records = merged.records;
     finishEdit();
     renderRecords();
-    showStatus(`${records.length}件の記録を復元しました。`);
+    showStatus(message);
   } catch (error) {
     console.error(error);
     showStatus(error.message || "読み込みに失敗しました。", true);
   }
+}
+
+function mergeBackupRecords(current, imported) {
+  const merged = current.slice();
+  const positions = new Map(current.map((record, index) => [record.id, index]));
+  let added = 0;
+  let updated = 0;
+  let unchanged = 0;
+
+  for (const incoming of imported) {
+    if (!positions.has(incoming.id)) {
+      positions.set(incoming.id, merged.length);
+      merged.push(incoming);
+      added += 1;
+      continue;
+    }
+
+    const index = positions.get(incoming.id);
+    const existing = merged[index];
+    const identical = ["id", "date", "text", "createdAt", "updatedAt"]
+      .every((field) => existing[field] === incoming[field]);
+    const incomingTime = Date.parse(incoming.updatedAt ?? incoming.createdAt);
+    const existingTime = Date.parse(existing.updatedAt ?? existing.createdAt);
+
+    if (!identical && incomingTime > existingTime) {
+      merged[index] = incoming;
+      updated += 1;
+    } else {
+      unchanged += 1;
+    }
+  }
+
+  return { records: merged, added, updated, unchanged };
 }
 
 function parseJsonBackup(content) {
@@ -302,11 +342,13 @@ function isValidBackupDate(value) {
 }
 
 function isValidBackupTimestamp(value) {
-  // 現行アプリが保存するUTCのISO日時を受け入れ、元の文字列を保持する。
-  if (typeof value !== "string" ||
-      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) return false;
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) && date.toISOString() === value;
+  if (typeof value !== "string") return false;
+  const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/.exec(value);
+  if (!match || !isValidBackupDate(match[1]) ||
+      Number(match[2]) > 23 || Number(match[3]) > 59 || Number(match[4]) > 59) return false;
+  const zone = match[5];
+  if (zone !== "Z" && (Number(zone.slice(1, 3)) > 23 || Number(zone.slice(4)) > 59)) return false;
+  return Number.isFinite(Date.parse(value));
 }
 
 function getSortedRecords() {
