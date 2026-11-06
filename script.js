@@ -3,7 +3,7 @@ const STORAGE_KEY = "simple-date-records-v1";
 const textInput = document.querySelector("#record-text");
 const saveButton = document.querySelector("#save-button");
 const cancelEditButton = document.querySelector("#cancel-edit-button");
-const exportCsvButton = document.querySelector("#export-csv");
+const exportJsonButton = document.querySelector("#export-json");
 const importButton = document.querySelector("#import-button");
 const importFileInput = document.querySelector("#import-file");
 const recordsList = document.querySelector("#records-list");
@@ -19,7 +19,7 @@ renderRecords();
 
 saveButton.addEventListener("click", saveRecord);
 cancelEditButton.addEventListener("click", cancelEdit);
-exportCsvButton.addEventListener("click", exportAsCsv);
+exportJsonButton.addEventListener("click", exportAsJson);
 importButton.addEventListener("click", () => importFileInput.click());
 importFileInput.addEventListener("change", importRecords);
 
@@ -212,28 +212,16 @@ function showStatus(message, isError = false, duration = 4000) {
   }, duration);
 }
 
-function exportAsCsv() {
-  if (!records.length) {
-    showStatus("書き出す記録がありません。", true);
-    return;
-  }
-
-  const rows = [
-    ["日付", "内容"],
-    ...getSortedRecords().map((record) => [record.date, record.text]),
-  ];
-
-  const csv = rows
-    .map((row) => row.map(escapeCsvValue).join(","))
-    .join("\r\n");
+function exportAsJson() {
+  const backup = { app: "Madalio", formatVersion: 1, records };
 
   downloadFile(
-    `madalio_${getFileDate()}.csv`,
-    `\uFEFF${csv}`,
-    "text/csv;charset=utf-8"
+    `madalio-backup-${getFileDate()}.json`,
+    JSON.stringify(backup, null, 2),
+    "application/json;charset=utf-8"
   );
 
-  showStatus("CSVファイルを作成しました。");
+  showStatus("JSONバックアップを作成しました。");
 }
 
 async function importRecords(event) {
@@ -243,134 +231,82 @@ async function importRecords(event) {
   if (!file) return;
 
   try {
+    if (file.name.split(".").pop()?.toLowerCase() !== "json") {
+      throw new Error("JSONファイルを選んでください。");
+    }
+
     const content = await file.text();
-    const extension = file.name.split(".").pop()?.toLowerCase();
-
-    if (extension !== "csv") {
-      throw new Error("CSVファイルを選んでください。");
-    }
-
-    const imported = parseCsvRecords(content);
-
-    if (!imported.length) {
-      throw new Error("読み込める記録が見つかりませんでした。");
-    }
-
-    const existingKeys = new Set(
-      records.map((record) => makeDuplicateKey(record.date, record.text))
+    const imported = parseJsonBackup(content);
+    const confirmed = window.confirm(
+      "現在のメモをすべて置き換えます。よろしいですか？"
     );
+    if (!confirmed) return;
 
-    const newRecords = imported
-      .filter((record) => {
-        const key = makeDuplicateKey(record.date, record.text);
-
-        if (existingKeys.has(key)) return false;
-
-        existingKeys.add(key);
-        return true;
-      })
-      .map((record) => createRecord(record.date, record.text));
-
-    if (!newRecords.length) {
-      showStatus("すべて登録済みの記録でした。");
+    // 保存に成功するまで、現在のメモと編集中の内容には触れない。
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
+    } catch (error) {
+      console.error("バックアップの保存に失敗しました。", error);
+      showStatus("保存に失敗しました。現在のメモは変更されていません。", true);
       return;
     }
 
-    const confirmed = window.confirm(
-      `${newRecords.length}件の記録を追加します。\n現在の記録は消えません。`
-    );
-
-    if (!confirmed) return;
-
-    records = [...newRecords, ...records];
-    saveRecords();
+    records = imported;
+    finishEdit();
     renderRecords();
-
-    const skipped = imported.length - newRecords.length;
-    const skippedText = skipped ? `（重複${skipped}件を除外）` : "";
-    showStatus(`${newRecords.length}件を読み込みました。${skippedText}`);
+    showStatus(`${records.length}件の記録を復元しました。`);
   } catch (error) {
     console.error(error);
     showStatus(error.message || "読み込みに失敗しました。", true);
   }
 }
 
-function parseCsvRecords(content) {
-  const rows = parseCsv(content.replace(/^\uFEFF/, ""));
+function parseJsonBackup(content) {
+  let backup;
+  try {
+    backup = JSON.parse(content.replace(/^\uFEFF/, ""));
+  } catch {
+    throw new Error("JSONの形式が正しくありません。");
+  }
 
-  if (!rows.length) return [];
+  if (!backup || typeof backup !== "object" || Array.isArray(backup) ||
+      backup.app !== "Madalio" || backup.formatVersion !== 1 ||
+      !Array.isArray(backup.records)) {
+    throw new Error("Madalioのバックアップ形式（formatVersion: 1）ではありません。");
+  }
 
-  const firstRow = rows[0].map((cell) => cell.trim());
-  const hasHeader =
-    firstRow[0] === "日付" ||
-    firstRow[0].toLowerCase() === "date";
-
-  const dataRows = hasHeader ? rows.slice(1) : rows;
-
-  return dataRows
-    .map((row) => ({
-      date: (row[0] || "").trim(),
-      text: (row[1] || "").trim(),
-    }))
-    .filter(isValidImportedRecord);
-}
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let value = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    const next = text[index + 1];
-
-    if (char === '"') {
-      if (inQuotes && next === '"') {
-        value += '"';
-        index += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === "," && !inQuotes) {
-      row.push(value);
-      value = "";
-    } else if ((char === "\n" || char === "\r") && !inQuotes) {
-      if (char === "\r" && next === "\n") {
-        index += 1;
-      }
-
-      row.push(value);
-
-      if (row.some((cell) => cell.length > 0)) {
-        rows.push(row);
-      }
-
-      row = [];
-      value = "";
-    } else {
-      value += char;
+  const ids = new Set();
+  return backup.records.map((record, index) => {
+    if (!record || typeof record !== "object" || Array.isArray(record) ||
+        typeof record.id !== "string" || !record.id.trim() ||
+        typeof record.date !== "string" || !isValidBackupDate(record.date) ||
+        typeof record.text !== "string" || !record.text.trim() ||
+        !isValidBackupTimestamp(record.createdAt) ||
+        !(record.updatedAt === null || isValidBackupTimestamp(record.updatedAt))) {
+      throw new Error(`${index + 1}件目のメモの必須フィールド・型・日付が正しくありません。`);
     }
-  }
+    if (ids.has(record.id)) {
+      throw new Error("メモのIDが重複しています。");
+    }
+    ids.add(record.id);
 
-  row.push(value);
-
-  if (row.some((cell) => cell.length > 0)) {
-    rows.push(row);
-  }
-
-  return rows;
+    const { id, date, text, createdAt, updatedAt } = record;
+    return { id, date, text, createdAt, updatedAt };
+  });
 }
 
-function isValidImportedRecord(record) {
-  return (
-    /^\d{4}-\d{2}-\d{2}$/.test(record.date || "") &&
-    Boolean(record.text?.trim())
-  );
+function isValidBackupDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-function makeDuplicateKey(date, text) {
-  return `${date}\u0000${text.trim()}`;
+function isValidBackupTimestamp(value) {
+  // 現行アプリが保存するUTCのISO日時を受け入れ、元の文字列を保持する。
+  if (typeof value !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) return false;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString() === value;
 }
 
 function getSortedRecords() {
@@ -380,11 +316,6 @@ function getSortedRecords() {
     }
     return b.createdAt.localeCompare(a.createdAt);
   });
-}
-
-function escapeCsvValue(value) {
-  const text = String(value).replace(/"/g, '""');
-  return `"${text}"`;
 }
 
 function getFileDate() {
