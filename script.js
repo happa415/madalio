@@ -12,6 +12,7 @@ const emptyMessage = document.querySelector("#empty-message");
 const recordCount = document.querySelector("#record-count");
 const statusMessage = document.querySelector("#status-message");
 
+let storageLoadFailed = false;
 let records = loadRecords();
 let editingRecordId = null;
 
@@ -35,18 +36,32 @@ function getToday() {
 function loadRecords() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
+    if (saved === null) return [];
+    const loaded = JSON.parse(saved);
+    validateRecords(loaded);
+    return loaded;
   } catch (error) {
     console.error("記録の読み込みに失敗しました。", error);
-    return [];
+    storageLoadFailed = true;
+    return null;
   }
 }
 
-function saveRecords() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+function saveRecords(nextRecords) {
+  if (storageLoadFailed) return false;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextRecords));
+  } catch (error) {
+    console.error("記録の保存に失敗しました。", error);
+    showStatus("保存に失敗しました。メモは変更されていません。入力内容を残しています。", true);
+    return false;
+  }
+  records = nextRecords;
+  return true;
 }
 
 function saveRecord() {
+  if (storageLoadFailed) return;
   const text = textInput.value.trim();
 
   if (!text) {
@@ -62,17 +77,17 @@ function saveRecord() {
       showStatus("編集する記録が見つかりませんでした。", true);
       return;
     }
-    record.text = text;
-    record.updatedAt = new Date().toISOString();
-    saveRecords();
+    const updated = { ...record, text, updatedAt: new Date().toISOString() };
+    const nextRecords = records.map((item) => item.id === editingRecordId ? updated : item);
+    if (!saveRecords(nextRecords)) return;
     renderRecords();
     finishEdit();
     showStatus("更新しました。");
     return;
   }
 
-  records.unshift(createRecord(getToday(), text));
-  saveRecords();
+  const nextRecords = [createRecord(getToday(), text), ...records];
+  if (!saveRecords(nextRecords)) return;
   renderRecords();
 
   textInput.value = "";
@@ -92,6 +107,15 @@ function createRecord(date, text) {
 
 function renderRecords() {
   recordsList.innerHTML = "";
+  if (storageLoadFailed) {
+    textInput.disabled = true;
+    [saveButton, cancelEditButton, importButton, importFileInput, exportJsonButton]
+      .forEach((control) => { control.disabled = true; });
+    emptyMessage.hidden = true;
+    recordCount.textContent = "読み込み失敗";
+    showStatus("保存データを読み込めません。データ保護のため操作を停止しています。データは変更していません。ページを再読み込みしてください。", true, 0);
+    return;
+  }
 
   getSortedRecords().forEach((record) => {
     const fragment = recordTemplate.content.cloneNode(true);
@@ -117,15 +141,16 @@ textElement.textContent = record.text;
     editButton.addEventListener("click", () => startEdit(record.id));
 
     deleteButton.addEventListener("click", () => {
+      if (storageLoadFailed) return;
       const confirmed = window.confirm(
         `${formatDate(record.date)} の記録を削除しますか？`
       );
 
       if (!confirmed) return;
 
-      records = records.filter((item) => item.id !== record.id);
+      const nextRecords = records.filter((item) => item.id !== record.id);
+      if (!saveRecords(nextRecords)) return;
       if (editingRecordId === record.id) finishEdit();
-      saveRecords();
       renderRecords();
       showStatus("削除しました。");
     });
@@ -139,6 +164,7 @@ textElement.textContent = record.text;
 }
 
 function startEdit(recordId) {
+  if (storageLoadFailed) return;
   const record = records.find((item) => item.id === recordId);
   if (!record) return;
 
@@ -152,6 +178,7 @@ function startEdit(recordId) {
 }
 
 function cancelEdit() {
+  if (storageLoadFailed) return;
   finishEdit();
   showStatus("編集をキャンセルしました。");
 }
@@ -206,6 +233,7 @@ function showStatus(message, isError = false, duration = 4000) {
   statusMessage.classList.toggle("error", isError);
 
   window.clearTimeout(showStatus.timer);
+  if (duration === 0) return;
   showStatus.timer = window.setTimeout(() => {
     statusMessage.textContent = "";
     statusMessage.classList.remove("error");
@@ -213,6 +241,7 @@ function showStatus(message, isError = false, duration = 4000) {
 }
 
 function exportAsJson() {
+  if (storageLoadFailed) return;
   const backup = { app: "Madalio", formatVersion: 1, records };
 
   downloadFile(
@@ -225,6 +254,7 @@ function exportAsJson() {
 }
 
 async function importRecords(event) {
+  if (storageLoadFailed) return;
   const file = event.target.files?.[0];
   event.target.value = "";
 
@@ -249,16 +279,7 @@ async function importRecords(event) {
       return;
     }
 
-    // 保存に成功するまで、現在のメモと編集中の内容には触れない。
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged.records));
-    } catch (error) {
-      console.error("バックアップの保存に失敗しました。", error);
-      showStatus("保存に失敗しました。現在のメモは変更されていません。", true);
-      return;
-    }
-
-    records = merged.records;
+    if (!saveRecords(merged.records)) return;
     finishEdit();
     renderRecords();
     showStatus(message);
@@ -315,8 +336,15 @@ function parseJsonBackup(content) {
     throw new Error("Madalioのバックアップ形式（formatVersion: 1）ではありません。");
   }
 
+  return validateRecords(backup.records);
+}
+
+function validateRecords(items) {
+  if (!Array.isArray(items)) {
+    throw new Error("メモの保存データが配列ではありません。");
+  }
   const ids = new Set();
-  return backup.records.map((record, index) => {
+  return items.map((record, index) => {
     if (!record || typeof record !== "object" || Array.isArray(record) ||
         typeof record.id !== "string" || !record.id.trim() ||
         typeof record.date !== "string" || !isValidBackupDate(record.date) ||
