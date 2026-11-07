@@ -12,6 +12,9 @@ const recordTemplate = document.querySelector("#record-template");
 const emptyMessage = document.querySelector("#empty-message");
 const recordCount = document.querySelector("#record-count");
 const statusMessage = document.querySelector("#status-message");
+const recoveryActions = document.querySelector("#recovery-actions");
+const recoveryButton = document.querySelector("#recovery-button");
+const recoveryMessage = document.querySelector("#recovery-message");
 
 let storageLoadFailed = false;
 let records = loadRecords();
@@ -24,6 +27,7 @@ cancelEditButton.addEventListener("click", cancelEdit);
 exportJsonButton.addEventListener("click", exportAsJson);
 importButton.addEventListener("click", () => importFileInput.click());
 importFileInput.addEventListener("change", importRecords);
+recoveryButton.addEventListener("click", exportRecoveryData);
 
 function getToday() {
   const today = new Date();
@@ -116,6 +120,7 @@ function createRecord(date, text) {
 }
 
 function renderRecords() {
+  recoveryActions.hidden = !storageLoadFailed;
   recordsList.innerHTML = "";
   if (storageLoadFailed) {
     textInput.disabled = true;
@@ -248,6 +253,35 @@ function showStatus(message, isError = false, duration = 4000) {
     statusMessage.textContent = "";
     statusMessage.classList.remove("error");
   }, duration);
+}
+
+function exportRecoveryData() {
+  if (!storageLoadFailed) return;
+  const notify = (message, isError) => {
+    recoveryMessage.textContent = message;
+    recoveryMessage.classList.toggle("error", isError);
+  };
+  let raw;
+  try {
+    raw = localStorage.getItem(STORAGE_KEY);
+  } catch {
+    notify("元データを読み取れませんでした。ブラウザの保存領域へのアクセスを確認してください。", true);
+    return;
+  }
+  if (raw === null) {
+    notify("保存データが存在しないため、ファイルを作成しませんでした。", true);
+    return;
+  }
+  try {
+    const now = new Date();
+    const pad = (value) => String(value).padStart(2, "0");
+    const stamp = `${String(now.getFullYear()).padStart(4, "0")}${pad(now.getMonth() + 1)}${pad(now.getDate())}-` +
+      `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    downloadFile(`madalio-recovery-${stamp}.json`, raw, "application/json;charset=utf-8");
+    notify("元データのファイル保存を開始しました。保存先を確認してください。", false);
+  } catch {
+    notify("元データのファイル生成・ダウンロード開始に失敗しました。", true);
+  }
 }
 
 function exportAsJson() {

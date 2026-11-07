@@ -32,6 +32,11 @@
       </div>
 
       <p id="status-message" class="status-message" aria-live="polite"></p>
+      <div id="recovery-actions" hidden>
+        <button id="recovery-button" class="secondary-button" type="button">元データを保存</button>
+        <p>保存データを加工せずに書き出します。通常のバックアップとして読み込めるとは限りません。</p>
+        <p id="recovery-message" class="status-message" aria-live="polite"></p>
+      </div>
     </section>
 
     <section class="panel backup-panel" aria-labelledby="backup-title">
