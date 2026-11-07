@@ -406,7 +406,7 @@ function getSortedRecords() {
     if (a.date !== b.date) {
       return b.date.localeCompare(a.date);
     }
-    return b.createdAt.localeCompare(a.createdAt);
+    return Date.parse(b.createdAt) - Date.parse(a.createdAt);
   });
 }
 

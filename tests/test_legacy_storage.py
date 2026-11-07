@@ -119,6 +119,49 @@ add('reject non-array root', blocked, {'records':[LEGACY]})
 add('reject malformed JSON', blocked, raw='{broken')
 add('read exception', blocked, fail_read=True)
 
+# Date-only ordering remains primary; timestamps are compared as instants.
+add('sort mixed Z and positive offset by actual instant', """
+const base=records[0];
+records=[{...base,id:'older',createdAt:'2026-08-01T10:00:00+09:00'},
+         {...base,id:'newer',createdAt:'2026-08-01T02:00:00Z'}];
+const before=JSON.stringify(records);
+eq(getSortedRecords().map(r=>r.id),['newer','older'],'timezone sort');
+assert(JSON.stringify(records)===before&&stored===originalStored&&writes===0,'sort mutated data');
+""")
+add('sort negative offset and fractional seconds', """
+const base=records[0];
+records=[{...base,id:'older',createdAt:'2026-08-01T09:00:00.100+09:00'},
+         {...base,id:'newer',createdAt:'2026-07-31T20:00:00.200-04:00'}];
+eq(getSortedRecords().map(r=>r.id),['newer','older'],'offset/fraction sort');
+""")
+add('equivalent timestamps preserve input order', """
+const base=records[0];
+records=[{...base,id:'first',createdAt:'2026-08-01T09:00:00.000+09:00'},
+         {...base,id:'second',createdAt:'2026-08-01T00:00:00Z'}];
+eq(getSortedRecords().map(r=>r.id),['first','second'],'equal instant order');
+records.reverse();
+eq(getSortedRecords().map(r=>r.id),['second','first'],'reversed equal instant order');
+""")
+add('date remains primary and updatedAt does not change display order', """
+const base=records[0];
+records=[{...base,id:'earlier-day',date:'2026-08-01',createdAt:'2026-08-02T10:00:00Z',updatedAt:'2026-08-03T00:00:00Z'},
+         {...base,id:'later-day',date:'2026-08-02',createdAt:'2026-08-01T00:00:00Z'}];
+eq(getSortedRecords().map(r=>r.id),['later-day','earlier-day'],'date precedence');
+""")
+add('merge equal offset instants keeps local and newer Z wins', """
+const local={...records[0],updatedAt:'2026-08-01T10:00:00+09:00'};
+const tied={...local,text:'JSON',updatedAt:'2026-08-01T01:00:00Z'};
+const result=mergeBackupRecords([local],[tied]);
+assert(result.updated===0&&result.records[0]===local,'tie replaced local');
+const newer={...tied,updatedAt:'2026-08-01T02:00:00Z'};
+assert(mergeBackupRecords([local],[newer]).records[0]===newer,'newer Z ignored');
+""")
+add('merge createdAt fallback uses actual instant', """
+const local={...records[0],createdAt:'2026-08-01T10:00:00+09:00',updatedAt:null};
+const newer={...local,text:'JSON',createdAt:'2026-08-01T02:00:00Z'};
+assert(mergeBackupRecords([local],[newer]).records[0]===newer,'createdAt fallback');
+""")
+
 with tempfile.TemporaryDirectory(prefix='madalio-legacy-tests-') as directory:
     for name,body,stored,fail_read in CASES:
         setup = '\nlet stored='+json.dumps(stored)+';let failRead='+str(fail_read).lower()+';\n'
