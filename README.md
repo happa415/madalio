@@ -108,11 +108,11 @@ python3 -m http.server 8000
 
 ## オフライン起動（PWA 第1段階）
 
-Service WorkerがHTML・CSS・JavaScript・ManifestをCache Storageへ版ごとに保存します。初回はオンラインでのアクセスと、必須ファイルすべてのキャッシュ・Worker有効化が必要です。登録だけでは準備完了ではありません。準備後はオフラインでも一覧・作成・編集・削除・コピー・JSON入出力を利用できます。JSONファイルは端末内に取得済みのものを使ってください。
+Service WorkerがHTML・CSS・JavaScript・Manifest・アイコンをCache Storageへ版ごとに保存します。初回はオンラインでのアクセスと、必須ファイルすべてのキャッシュ・Worker有効化が必要です。登録だけでは準備完了ではありません。準備後はオフラインでも一覧・作成・編集・削除・コピー・JSON入出力を利用できます。JSONファイルは端末内に取得済みのものを使ってください。
 
 メモは従来どおりlocalStorage、アプリ本体はCache Storageに保存します。WorkerはlocalStorageやJSONバックアップを操作しません。キャッシュ削除とメモ削除は別です。ただし、ブラウザの「サイトデータをすべて削除」はメモも消す可能性があります。定期的にJSONでバックアップしてください。
 
-アイコンは未作成です。オフライン起動は検証できますが、インストール案内や見た目はブラウザにより異なり、インストール対応の完成確認は後の段階です。
+`madalio-icon-source.png` を元に、PWA用192・512px、Apple Touch Icon用180px、favicon用32pxのPNGを `icons/` に配置しています。元画像の白い外周余白を切り取り、外周に連続する白を透明化して正方形・配色を維持し、Manifestでは通常アイコン（`purpose: any`）として使用します。
 
 ### 登録条件とLive Serverでのテスト
 
@@ -122,7 +122,7 @@ Service WorkerがHTML・CSS・JavaScript・ManifestをCache Storageへ版ごと�
 - 開発ではホストとポートを固定してください。GitHub Pagesとは保存領域が異なります。LANのHTTPアドレスや `file://` ではPWA試験はできません。
 - Live Serverの自動リロードは、更新・未保存本文保持の試験中は停止してください。
 
-Chrome DevToolsのApplicationでService Workersの状態がactivatedになり、Cache Storageに必須5URL（トップ・index.html・版付きCSS・版付きJS・Manifest）がそろったことを確認します。もう一度PWAテストURLを開いて制御を受け、Offlineを有効にして通常再読み込みします。トップと `index.html?pwa-test=1` の両方、ブラウザを閉じた後の再起動、各メモ操作とJSON入出力を確認してください。本番ではテストクエリは不要です。
+Chrome DevToolsのApplicationでService Workersの状態がactivatedになり、Cache Storageに必須9URL（トップ・index.html・版付きCSS・版付きJS・Manifest・4種類のアイコン）がそろったことを確認します。もう一度PWAテストURLを開いて制御を受け、Offlineを有効にして通常再読み込みします。トップと `index.html?pwa-test=1` の両方、ブラウザを閉じた後の再起動、各メモ操作とJSON入出力を確認してください。本番ではテストクエリは不要です。
 
 ### 更新とバージョン管理
 
@@ -155,3 +155,5 @@ JSONは `formatVersion: 1` の構造を維持し、`createdAt: null` を許容�
 保護状態のエラー表示の下にある「元データを保存」で、保存キーの文字列を加工せず `madalio-recovery-YYYYMMDD-HHMMSS.json`（端末のローカル時刻）へ書き出せます。通常状態では表示しません。救出時もlocalStorageへの書き込みや保護状態の解除は行いません。読み取り不可・保存値なし・ファイル生成失敗は別々に通知します。
 
 救出ファイルは正常なJSONや通常バックアップとしての復元を保証せず、自動修復・復元もしません。保存開始後のキャンセルやディスクへの保存完了はアプリから確認できないため、保存先でファイルを確認してください。
+
+アイコンのみの更新では、アプリ版 `v1.5.0` は維持し、`sw.js` の `ASSET_REVISION`（現在 `icons-2`）とアイコンファイル名の `v2`、HTML・Manifest・プリキャッシュの参照を更新します。Manifest参照の `?icons=2` も更新してください。旧キャッシュと分離して新版を準備し、全Madalio画面を閉じた後に適用します。インストール済みアイコンの反映時期はOS・ブラウザにより異なります。

@@ -2,13 +2,19 @@
 const VERSION = "1.5.0";
 const BASE_URL = new URL("./", self.location.href);
 const CACHE_PREFIX = `madalio-${BASE_URL.pathname}-assets-`;
-const CACHE_NAME = `${CACHE_PREFIX}${VERSION}`;
+// アプリ版を据え置いたアイコン更新でも、既存キャッシュとは分離する。
+const ASSET_REVISION = "icons-2";
+const CACHE_NAME = `${CACHE_PREFIX}${VERSION}-${ASSET_REVISION}`;
 const ASSET_PATHS = [
   "./",
   "index.html",
   `style.css?v=${VERSION}`,
   `script.js?v=${VERSION}`,
-  "manifest.webmanifest",
+  "manifest.webmanifest?icons=2",
+  "icons/madalio-icon-192-v2.png",
+  "icons/madalio-icon-512-v2.png",
+  "icons/madalio-icon-180-v2.png",
+  "icons/madalio-icon-32-v2.png",
 ];
 const ASSET_URLS = ASSET_PATHS.map((path) => new URL(path, BASE_URL).href);
 const LOCAL = ["localhost", "127.0.0.1", "[::1]"].includes(BASE_URL.hostname);
