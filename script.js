@@ -41,6 +41,7 @@ function loadRecords() {
     const loaded = JSON.parse(saved);
     // 旧形式の欠落だけをメモリ上で補完する。起動時には書き戻さない。
     const normalized = Array.isArray(loaded) ? loaded.map((record) => {
+      record = normalizeCreatedAt(record);
       if (record && typeof record === "object" && !Array.isArray(record) &&
           !Object.prototype.hasOwnProperty.call(record, "updatedAt")) {
         return { ...record, updatedAt: null };
@@ -333,7 +334,8 @@ function mergeBackupRecords(current, imported) {
     const incomingTime = Date.parse(incoming.updatedAt ?? incoming.createdAt);
     const existingTime = Date.parse(existing.updatedAt ?? existing.createdAt);
 
-    if (!identical && incomingTime > existingTime) {
+    if (!identical && Number.isFinite(incomingTime) &&
+        Number.isFinite(existingTime) && incomingTime > existingTime) {
       merged[index] = incoming;
       updated += 1;
     } else {
@@ -358,7 +360,16 @@ function parseJsonBackup(content) {
     throw new Error("Madalioのバックアップ形式（formatVersion: 1）ではありません。");
   }
 
-  return validateRecords(backup.records);
+  return validateRecords(backup.records.map(normalizeCreatedAt));
+}
+
+// 欠落だけを補完する。明示された不正値には触れない。
+function normalizeCreatedAt(record) {
+  if (record && typeof record === "object" && !Array.isArray(record) &&
+      !Object.prototype.hasOwnProperty.call(record, "createdAt")) {
+    return { ...record, createdAt: null };
+  }
+  return record;
 }
 
 function validateRecords(items) {
@@ -371,7 +382,7 @@ function validateRecords(items) {
         typeof record.id !== "string" || !record.id.trim() ||
         typeof record.date !== "string" || !isValidBackupDate(record.date) ||
         typeof record.text !== "string" || !record.text.trim() ||
-        !isValidBackupTimestamp(record.createdAt) ||
+        !(record.createdAt === null || isValidBackupTimestamp(record.createdAt)) ||
         !(record.updatedAt === null || isValidBackupTimestamp(record.updatedAt))) {
       throw new Error(`${index + 1}件目のメモの必須フィールド・型・日付が正しくありません。`);
     }
@@ -406,6 +417,8 @@ function getSortedRecords() {
     if (a.date !== b.date) {
       return b.date.localeCompare(a.date);
     }
+    if (a.createdAt === null) return b.createdAt === null ? 0 : 1;
+    if (b.createdAt === null) return -1;
     return Date.parse(b.createdAt) - Date.parse(a.createdAt);
   });
 }

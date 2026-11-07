@@ -108,7 +108,7 @@ assert(writes===0&&stored===originalStored,'original overwritten');
 '''
 for value in ['', 1, False, 'bad', '2026-02-30T00:00:00Z', [], {}]:
     add('reject explicit updatedAt '+repr(value), blocked, [dict(LEGACY, updatedAt=value)])
-for key in ['id', 'date', 'text', 'createdAt']:
+for key in ['id', 'date', 'text']:
     add('reject missing '+key, blocked, [{k:v for k,v in LEGACY.items() if k!=key}])
 for key,value in [('id',42),('date','2026-02-30'),('createdAt','bad'),('text',None)]:
     add('reject invalid '+key, blocked, [dict(LEGACY, **{key:value})])
@@ -161,6 +161,83 @@ const local={...records[0],createdAt:'2026-08-01T10:00:00+09:00',updatedAt:null}
 const newer={...local,text:'JSON',createdAt:'2026-08-01T02:00:00Z'};
 assert(mergeBackupRecords([local],[newer]).records[0]===newer,'createdAt fallback');
 """)
+
+# Missing creation timestamps are unknown, never guessed.
+UNKNOWN = {k:v for k,v in CURRENT.items() if k!='createdAt'}
+for label,item in [('missing',UNKNOWN),('null',dict(UNKNOWN,createdAt=None)),
+                   ('both missing',{k:v for k,v in UNKNOWN.items() if k!='updatedAt'})]:
+    add('unknown creation startup '+label, """
+assert(!storageLoadFailed&&records.length===2,'mixed load');
+assert(records[1].createdAt===null&&records[1].updatedAt===null,'normalize');
+assert(writes===0&&stored===originalStored,'startup write');
+assert(formatDateTime(records[1].createdAt)==='―','unknown display');
+""", [LEGACY,item])
+for value in ['',0,False,'bad','2026-02-30T00:00:00Z',[],{}]:
+    add('reject invalid creation '+repr(value),blocked,[dict(CURRENT,createdAt=value)])
+add('unknown creation ordering and stable unknowns', """
+const base=records[0];
+records=[{...base,id:'u1',createdAt:null},
+ {...base,id:'older',createdAt:'2026-08-01T10:00:00+09:00'},
+ {...base,id:'u2',createdAt:null},
+ {...base,id:'newer',createdAt:'2026-08-01T02:00:00Z'},
+ {...base,id:'next-day',date:'2026-08-02',createdAt:null}];
+const before=JSON.stringify(records);
+eq(getSortedRecords().map(r=>r.id),['next-day','newer','older','u1','u2'],'order');
+assert(JSON.stringify(records)===before&&writes===0,'sort mutation');
+""")
+add('edit unknown creation and create new memo', """
+startEdit(records[0].id);textInput.value='編集';saveRecord();
+assert(records[0].createdAt===null&&isValidBackupTimestamp(records[0].updatedAt),'edited dates');
+assert(records[0].id==='current'&&records[0].date==='2026-08-01','identity');
+textInput.value='新規';saveRecord();
+assert(isValidBackupTimestamp(records[0].createdAt),'new creation');
+assert(JSON.parse(stored)[1].createdAt===null,'unknown persisted');
+""",[UNKNOWN])
+add('unknown JSON round trip and missing creation import', """
+let output;downloadFile=(name,content)=>output=content;exportAsJson();
+const exported=JSON.parse(output);assert(exported.formatVersion===1,'version');
+const restored=parseJsonBackup(output);assert(restored.length===records.length,'round trip length');
+for(let i=0;i<records.length;i++)for(const key of ['id','date','text','createdAt','updatedAt'])
+  assert(restored[i][key]===records[i][key],'round trip '+key);
+const missing={...records[0],id:'new'};delete missing.createdAt;
+await importText(backup([missing]));
+assert(records.find(r=>r.id==='new').createdAt===null&&records.length===2,'import missing');
+""",[UNKNOWN])
+for field in ['createdAt','updatedAt']:
+    for localKnown,incomingKnown in [(False,False),(False,True),(True,False),(True,True)]:
+        add('unknown merge '+field+' '+str((localKnown,incomingKnown)), """
+const base={...records[0],createdAt:null,updatedAt:null};
+const local={...base};const incoming={...base,text:'JSON'};
+"""+('local.'+field+"='2026-08-01T00:00:00Z';" if localKnown else '')+
+('incoming.'+field+"='2026-08-01T09:00:00+09:00';" if incomingKnown else '')+"""
+const result=mergeBackupRecords([local],[incoming]);
+assert(result.records[0]===local,'conflict result');
+assert(result.updated===0&&result.unchanged===1,'count');
+""")
+for localKnown in [False,True]:
+    add('one-sided timestamp import retains local '+str(localKnown), """
+const local={...records[0],createdAt:null,updatedAt:null};
+const incoming={...local,text:'JSON'};
+"""+("local.updatedAt='2026-08-02T00:00:00Z';" if localKnown else
+      "incoming.createdAt='2026-08-02T09:00:00+09:00';")+"""
+records=[local];const before=JSON.stringify(records);
+await importText(backup([incoming]));
+assert(records[0]===local&&JSON.stringify(records)===before,'local changed');
+assert(writes===0&&stored===originalStored,'unnecessary write');
+""")
+for operation,action in [('edit',"startEdit(records[0].id);textInput.value='draft';saveRecord()"),
+                         ('import',"textInput.value='draft';await importText(backup([{...records[0],id:'new'}]))")]:
+    add('unknown creation save failure '+operation,"""
+const before=JSON.stringify(records);failWrite=true;
+"""+action+""";
+assert(JSON.stringify(records)===before&&stored===originalStored,'data changed');
+assert(textInput.value==='draft'&&cards.length===1,'draft/view');
+""",[UNKNOWN])
+add('unknown JSON rejects other malformed records atomically', """
+const before=JSON.stringify(records);
+await importText(backup([{...records[0],id:'good'}, {...records[0],id:'bad',createdAt:''}]));
+assert(JSON.stringify(records)===before&&stored===originalStored&&writes===0,'partial import');
+""",[UNKNOWN])
 
 with tempfile.TemporaryDirectory(prefix='madalio-legacy-tests-') as directory:
     for name,body,stored,fail_read in CASES:
