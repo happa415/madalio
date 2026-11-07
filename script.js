@@ -1,4 +1,4 @@
-const APP_VERSION = "1.4.5.6";
+const APP_VERSION = "1.5.0";
 const STORAGE_KEY = "simple-date-records-v1";
 
 const textInput = document.querySelector("#record-text");
