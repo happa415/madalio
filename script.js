@@ -1,4 +1,4 @@
-const APP_VERSION = "1.4.5.5";
+const APP_VERSION = "1.4.5.6";
 const STORAGE_KEY = "simple-date-records-v1";
 
 const textInput = document.querySelector("#record-text");
@@ -276,11 +276,6 @@ async function importRecords(event) {
 
     const content = await file.text();
     const imported = parseJsonBackup(content);
-    const confirmed = window.confirm(
-      "現在のメモを残しながら、JSONのメモを追加・更新します。よろしいですか？"
-    );
-    if (!confirmed) return;
-
     const merged = mergeBackupRecords(records, imported);
     const message = `追加${merged.added}件・更新${merged.updated}件・変更なし${merged.unchanged}件`;
     if (merged.added === 0 && merged.updated === 0) {
@@ -288,8 +283,26 @@ async function importRecords(event) {
       return;
     }
 
+    // 非同期のファイル読み込み完了後、確認直前の入力を判定する。
+    const inputText = textInput.value;
+    const inputRecordId = editingRecordId;
+    const currentRecords = records;
+    const editingRecord = records.find((record) => record.id === inputRecordId);
+    const hasUnsavedInput = inputRecordId !== null
+      ? !editingRecord || inputText !== editingRecord.text
+      : inputText.length > 0;
+    const confirmed = window.confirm(hasUnsavedInput
+      ? "JSONバックアップを読み込みますか？\nバックアップのメモを追加・更新します。\n保存していない入力途中の文章は消去されます。"
+      : "JSONバックアップを読み込みますか？\nバックアップのメモを追加・更新します。");
+    if (!confirmed) return;
+    // confirm後は保存までawaitしない。確認中に状態が変わった場合も破棄しない。
+    if (textInput.value !== inputText || editingRecordId !== inputRecordId || records !== currentRecords) {
+      showStatus("入力またはメモが変更されたため、読み込みを中止しました。もう一度お試しください。", true);
+      return;
+    }
+
     if (!saveRecords(merged.records)) return;
-    finishEdit();
+    if (textInput.value === inputText && editingRecordId === inputRecordId) finishEdit();
     renderRecords();
     showStatus(message);
   } catch (error) {
