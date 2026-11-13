@@ -1,4 +1,4 @@
-const APP_VERSION = "1.5.0";
+const APP_VERSION = "1.5.1";
 const STORAGE_KEY = "simple-date-records-v1";
 
 const textInput = document.querySelector("#record-text");
@@ -149,7 +149,7 @@ function renderRecords() {
 `;
 
 dateElement.dateTime = record.date;
-textElement.textContent = record.text;
+renderRecordText(textElement, record.text);
 
     copyButton.addEventListener("click", () => copyRecordText(record, copyButton));
 
@@ -203,6 +203,153 @@ function finishEdit() {
   textInput.value = "";
   saveButton.textContent = "保存する";
   cancelEditButton.hidden = true;
+}
+
+// 改行を含む元の範囲を保持する。解析結果は保存データへ書き戻さない。
+function splitTextLines(text) {
+  const lines = [];
+  for (const match of text.matchAll(/([^\r\n]*)(\r\n|\r|\n|$)/g)) {
+    if (!match[0].length) continue;
+    lines.push({ text: match[1], start: match.index, end: match.index + match[0].length });
+  }
+  return lines;
+}
+
+function parseCodeBlocks(text) {
+  const lines = splitTextLines(text);
+  const parts = [];
+  let plainStart = 0;
+  for (let index = 0; index < lines.length; index += 1) {
+    const opening = /^(`{3,})(.*)$/.exec(lines[index].text);
+    if (!opening) continue;
+    let closingIndex = index + 1;
+    for (; closingIndex < lines.length; closingIndex += 1) {
+      const closing = /^(`{3,})[ \t]*$/.exec(lines[closingIndex].text);
+      if (closing && closing[1].length >= opening[1].length) break;
+    }
+    // 閉じ忘れは開始フェンス以降も含めて通常文章のまま残す。
+    if (closingIndex === lines.length) break;
+    if (lines[index].start > plainStart) {
+      parts.push({ type: "text", text: text.slice(plainStart, lines[index].start) });
+    }
+    parts.push({
+      type: "code",
+      language: opening[2].trim(),
+      text: text.slice(lines[index].end, lines[closingIndex].start),
+    });
+    plainStart = lines[closingIndex].end;
+    index = closingIndex;
+  }
+  if (plainStart < text.length) parts.push({ type: "text", text: text.slice(plainStart) });
+  return parts;
+}
+
+function setCodeCopyIcon(button, copied) {
+  const ns = "http://www.w3.org/2000/svg";
+  const icon = document.createElementNS(ns, "svg");
+  icon.setAttribute("viewBox", "0 0 24 24");
+  icon.setAttribute("aria-hidden", "true");
+  icon.setAttribute("focusable", "false");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", copied
+    ? "M5 12l4 4L19 6"
+    : "M9 5V3h11v13h-2M4 7h11v14H4z");
+  icon.appendChild(path);
+  button.replaceChildren(icon);
+}
+
+function createCodeCopyButton(text, label, disabled = false) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "code-copy-button";
+  button.disabled = disabled;
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  setCodeCopyIcon(button, false);
+  button.addEventListener("click", async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    try {
+      if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+        throw new Error("Clipboard APIを利用できません。");
+      }
+      // クリックから直接呼び出し、DOMの表示文字列から再構築しない。
+      await navigator.clipboard.writeText(text);
+      setCodeCopyIcon(button, true);
+      showStatus("コピーしました。", false, 800);
+      setTimeout(() => {
+        setCodeCopyIcon(button, false);
+        button.disabled = false;
+      }, 800);
+    } catch (error) {
+      button.disabled = false;
+      showStatus("コピーに失敗しました。", true);
+    }
+  });
+  return button;
+}
+
+function renderRecordText(container, text) {
+  const parts = parseCodeBlocks(text);
+  if (!parts.some((part) => part.type === "code")) {
+    container.textContent = text;
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  let blockNumber = 0;
+  for (const part of parts) {
+    if (part.type === "text") {
+      const paragraph = document.createElement("div");
+      paragraph.className = "record-plain-text";
+      paragraph.textContent = part.text;
+      fragment.appendChild(paragraph);
+      continue;
+    }
+    blockNumber += 1;
+    const block = document.createElement("section");
+    block.className = "code-block";
+    const header = document.createElement("div");
+    header.className = "code-block-header";
+    if (part.language) {
+      const language = document.createElement("span");
+      language.className = "code-language";
+      language.textContent = part.language;
+      header.appendChild(language);
+    }
+    header.appendChild(createCodeCopyButton(part.text,
+      `コードブロック${blockNumber}全体をコピー`, !/[^ \t\r\n]/.test(part.text)));
+    const body = document.createElement("div");
+    body.className = "code-block-body";
+    const pre = document.createElement("pre");
+    pre.className = "code-scroll";
+    pre.tabIndex = 0;
+    pre.setAttribute("aria-label", `コードブロック${blockNumber}の本文`);
+    const code = document.createElement("code");
+    const actions = document.createElement("div");
+    actions.className = "code-line-actions";
+    const lines = splitTextLines(part.text);
+    // 本文が空でもコード領域を1行分表示する。末尾改行の疑似空行は増やさない。
+    for (const [index, line] of (lines.length ? lines : [{ text: "" }]).entries()) {
+      const span = document.createElement("span");
+      span.className = "code-line";
+      span.textContent = line.text;
+      code.appendChild(span);
+      const action = document.createElement("div");
+      action.className = "code-line-action";
+      if (/[^ \t]/.test(line.text)) {
+        action.appendChild(createCodeCopyButton(line.text,
+          `コードブロック${blockNumber}の${index + 1}行目をコピー`));
+      }
+      actions.appendChild(action);
+    }
+    pre.appendChild(code);
+    body.appendChild(pre);
+    body.appendChild(actions);
+    block.appendChild(header);
+    block.appendChild(body);
+    fragment.appendChild(block);
+  }
+  container.replaceChildren(fragment);
 }
 
 function copyRecordText(record, button) {

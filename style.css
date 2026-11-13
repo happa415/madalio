@@ -362,3 +362,114 @@ textarea:focus {
     white-space: nowrap;
   }
 }
+
+
+/* 本文は保存文字列のまま。コード領域だけを横スクロールさせる。 */
+.record-card,
+.record-text {
+  min-width: 0;
+}
+
+.code-block {
+  min-width: 0;
+  max-width: 100%;
+  margin: 12px 0;
+  overflow: hidden;
+  border: 1px solid #cbd1cb;
+  border-radius: 14px;
+  background: #eef1ed;
+  white-space: normal;
+  overflow-wrap: normal;
+}
+
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 4px 0 12px;
+  background: #e3e9e2;
+}
+
+.code-language {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #44594a;
+  font-size: 0.85rem;
+}
+
+.code-block-header > .code-copy-button {
+  margin-left: auto;
+}
+
+.code-block-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+}
+
+.code-scroll {
+  min-width: 0;
+  margin: 0;
+  padding: 4px 12px;
+  overflow-x: auto;
+  white-space: pre;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.88rem;
+  tab-size: 4;
+}
+
+.code-scroll code {
+  font: inherit;
+}
+
+.code-line {
+  display: block;
+  height: 44px;
+  line-height: 44px;
+}
+
+.code-line-actions {
+  padding: 4px 0;
+  border-left: 1px solid #d7ded5;
+}
+
+.code-line-action {
+  height: 44px;
+}
+
+.code-copy-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #44594a;
+  cursor: pointer;
+}
+
+.code-copy-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.code-copy-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.code-copy-button:focus-visible,
+.code-scroll:focus-visible {
+  outline: 2px solid #44594a;
+  outline-offset: -2px;
+}
